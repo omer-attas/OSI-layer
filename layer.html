@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محاكاة طبقات OSI لنقل البيانات - تفاعلي</title>
+    <style>
+        :root {
+            --primary: #2C3E50;
+            --secondary: #27ae60;
+            --bg: #ECF0F1;
+            --layer-bg: #fff;
+            --active-layer: #F1C40F;
+            --text: #333;
+            --accent: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: inline-block;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+
+        .btn-send {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-send:hover { background-color: #1a252f; }
+        .btn-send:disabled { background-color: #95a5a6; cursor: not-allowed; }
+
+        .simulation-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .device {
+            width: 28%;
+            background: var(--primary);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .device h2 {
+            color: white;
+            font-size: 18px;
+            margin-top: 0;
+            border-bottom: 1px solid #576574;
+            padding-bottom: 10px;
+        }
+
+        .layer {
+            background-color: var(--layer-bg);
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-size: 15px;
+        }
+
+        .layer span.num {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+
+        .active {
+            background-color: var(--active-layer);
+            transform: scale(1.05);
+            border: 2px solid #e67e22;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+        }
+
+        .status-board {
+            width: 40%;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 3px dashed #bdc3c7;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .status-header {
+            color: var(--accent);
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        #explanation {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #2c3e50;
+            flex-grow: 1;
+            text-align: right; /* المحاذاة لليمين */
+            direction: rtl; /* إجبار الاتجاه من اليمين لليسار */
+            padding: 20px 15px;
+        }
+
+        .btn-next {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(39, 174, 96, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .btn-next:hover {
+            background-color: #219653;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        #receiver-screen {
+            margin-top: 15px;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            min-height: 24px;
+            text-align: right;
+            direction: ltr;
+        }
+
+        .highlight-text {
+            color: #e67e22;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>محاكاة نقل البيانات (الخطوة بخطوة)</h1>
+    <p class="subtitle">اكتب رسالة وراقب خطوة بخطوة كيف يتم تجهيزها، نقلها، ثم عرضها عند المستقبل</p>
+
+    <div class="controls">
+        <input type="text" id="messageInput" placeholder="اكتب رسالة هنا... (مثال: السلام عليكم)">
+        <button id="sendBtn" class="btn-send" onclick="startSimulation()">بدء المحاكاة</button>
+    </div>
+
+    <div class="simulation-container">
+        
+        <!-- المرسل -->
+        <div class="device" id="sender">
+            <h2>الجهاز المرسل (أنت)</h2>
+            <div class="layer sender-layer" id="s-layer7"><span class="num">7</span>التطبيقات <bdi>(Application)</bdi></div>
+            <div class="layer sender-layer" id="s-layer6"><span class="num">6</span>التقديم <bdi>(Presentation)</bdi></div>
+            <div class="layer sender-layer" id="s-layer5"><span class="num">5</span>الجلسة <bdi>(Session)</bdi></div>
+            <div class="layer sender-layer" id="s-layer4"><span class="num">4</span>النقل <bdi>(Transport)</bdi></div>
+            <div class="layer sender-layer" id="s-layer3"><span class="num">3</span>الشبكة <bdi>(Network)</bdi></div>
+            <div class="layer sender-layer" id="s-layer2"><span class="num">2</span>ربط البيانات <bdi>(Data Link)</bdi></div>
+            <div class="layer sender-layer" id="s-layer1"><span class="num">1</span>الفيزيائية <bdi>(Physical)</bdi></div>
+        </div>
+
+        <!-- لوحة الشرح التفاعلية -->
+        <div class="status-board">
+            <div class="status-header" id="status-title">ماذا يحدث الآن؟</div>
+            <div id="explanation">اكتب رسالة واضغط على "بدء المحاكاة" لتبدأ الرحلة...</div>
+            
+            <!-- الزر الجديد للتحكم بالخطوات -->
+            <button id="nextBtn" class="btn-next" onclick="nextStep()">الخطوة التالية ➡️</button>
+        </div>
+
+        <!-- المستقبل -->
+        <div class="device" id="receiver">
+            <h2>الجهاز المستقبل (صديقك)</h2>
+            <div class="layer receiver-layer" id="r-layer7"><span class="num">7</span>التطبيقات <bdi>(Application)</bdi></div>
+            <div class="layer receiver-layer" id="r-layer6"><span class="num">6</span>التقديم <bdi>(Presentation)</bdi></div>
+            <div class="layer receiver-layer" id="r-layer5"><span class="num">5</span>الجلسة <bdi>(Session)</bdi></div>
+            <div class="layer receiver-layer" id="r-layer4"><span class="num">4</span>النقل <bdi>(Transport)</bdi></div>
+            <div class="layer receiver-layer" id="r-layer3"><span class="num">3</span>الشبكة <bdi>(Network)</bdi></div>
+            <div class="layer receiver-layer" id="r-layer2"><span class="num">2</span>ربط البيانات <bdi>(Data Link)</bdi></div>
+            <div class="layer receiver-layer" id="r-layer1"><span class="num">1</span>الفيزيائية <bdi>(Physical)</bdi></div>
+            <div id="receiver-screen"></div>
+        </div>
+    </div>
+
+    <script>
+        const explanationBox = document.getElementById('explanation');
+        const statusTitle = document.getElementById('status-title');
+        const sendBtn = document.getElementById('sendBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const messageInput = document.getElementById('messageInput');
+        const receiverScreen = document.getElementById('receiver-screen');
+
+        let currentStep = 0;
+        let userMessage = "";
+
+        // تجهيز مصفوفة لجميع الخطوات بالترتيب مع حماية الكلمات الإنجليزية بـ <bdi>
+        const simulationSteps = [
+            { target: 's-layer7', title: 'عملية المرسل - طبقة 7', text: "<b>طبقة التطبيقات:</b><br>تستلم رسالتك من البرنامج المفتوح وتستعد لإرسالها." },
+            { target: 's-layer6', title: 'عملية المرسل - طبقة 6', text: "<b>طبقة التقديم:</b><br>تقوم بـ <span class='highlight-text'>تشفير</span> الرسالة كي لا يقرأها المخترقون، وتنسقها لتصبح جاهزة." },
+            { target: 's-layer5', title: 'عملية المرسل - طبقة 5', text: "<b>طبقة الجلسة:</b><br>تتأكد من فتح قناة اتصال (جلسة) مع الجهاز الآخر لبدء نقل البيانات." },
+            { target: 's-layer4', title: 'عملية المرسل - طبقة 4', text: "<b>طبقة النقل:</b><br>تقوم بتقسيم رسالتك إلى أجزاء صغيرة تسمى <bdi class='highlight-text'>(Packets)</bdi> لتسهيل مرورها." },
+            { target: 's-layer3', title: 'عملية المرسل - طبقة 3', text: "<b>طبقة الشبكة:</b><br>تضيف عنوان <bdi class='highlight-text'>(IP)</bdi> للوجهة النهائية، لكي تعرف الحزم طريقها في خريطة الإنترنت." },
+            { target: 's-layer2', title: 'عملية المرسل - طبقة 2', text: "<b>طبقة ربط البيانات:</b><br>تحول الحزمة إلى <bdi class='highlight-text'>(Frame)</bdi> وتفحصه للتأكد من خلوه من الأخطاء وتضع عنوان القفزة القادمة." },
+            { target: 's-layer1', title: 'عملية المرسل - طبقة 1', text: "<b>الطبقة الفيزيائية:</b><br>يتم تحويل البيانات إلى <span class='highlight-text'>إشارات كهربائية أو ضوئية (0 و 1)</span> لتمر في الأسلاك أو الواي فاي." },
+            
+            // الشبكة (الوسط الناقل) مع حل مشكلة النص
+            { target: 'network', title: '🌐 الانتقال عبر الإنترنت', text: "تنتقل الإشارات الآن عبر الموجهات <bdi class='highlight-text'>(Routers)</bdi> في الإنترنت. كل موجه يقرأ عنوان <bdi class='highlight-text'>(IP)</bdi> ليختار أفضل مسار للرسالة." },
+            
+            // الجهاز المستقبل (من 1 إلى 7)
+            { target: 'r-layer1', title: 'عملية المستقبل - طبقة 1', text: "<b>الطبقة الفيزيائية:</b><br>تستقبل الإشارات من السلك، وتحولها مجدداً إلى بيانات رقمية (0 و 1)." },
+            { target: 'r-layer2', title: 'عملية المستقبل - طبقة 2', text: "<b>طبقة ربط البيانات:</b><br>تفتح الإطار <bdi>(Frame)</bdi> وتتأكد أن البيانات لم تتلف أثناء انتقالها بالطريق." },
+            { target: 'r-layer3', title: 'عملية المستقبل - طبقة 3', text: "<b>طبقة الشبكة:</b><br>تقرأ عنوان الـ <bdi>IP</bdi> لتتأكد أخيراً أن هذه الرسالة مخصصة لهذا الجهاز فعلاً." },
+            { target: 'r-layer4', title: 'عملية المستقبل - طبقة 4', text: "<b>طبقة النقل:</b><br>تقوم بتجميع <span class='highlight-text'>الحزم المقطعة</span> وتعيد ترتيبها كقطع البازل لتكوين الرسالة الأصلية." },
+            { target: 'r-layer5', title: 'عملية المستقبل - طبقة 5', text: "<b>طبقة الجلسة:</b><br>تسجل وصول الرسالة بأمان، وتقوم بإغلاق جلسة الاتصال المفتوحة." },
+            { target: 'r-layer6', title: 'عملية المستقبل - طبقة 6', text: "<b>طبقة التقديم:</b><br>تقوم بـ <span class='highlight-text'>فك التشفير</span> وإعادة الرسالة لصيغتها الأصلية المفهومة." },
+            { target: 'r-layer7', title: 'عملية المستقبل - طبقة 7', text: "<b>طبقة التطبيقات:</b><br>تسلم الرسالة لتطبيق الدردشة في جهاز صديقك لتظهر على الشاشة." }
+        ];
+
+        function clearHighlights() {
+            document.querySelectorAll('.layer').forEach(el => el.classList.remove('active'));
+            statusTitle.style.color = "var(--accent)";
+        }
+
+        // دالة بدء المحاكاة (تهيئة الواجهة)
+        function startSimulation() {
+            userMessage = messageInput.value.trim();
+            if(!userMessage) {
+                alert("الرجاء كتابة رسالة أولاً!");
+                return;
+            }
+
+            sendBtn.disabled = true;
+            receiverScreen.innerText = "";
+            currentStep = 0;
+            nextBtn.style.display = "block";
+            executeStep();
+        }
+
+        // دالة تنفيذ الخطوة الحالية
+        function executeStep() {
+            clearHighlights();
+            let stepData = simulationSteps[currentStep];
+
+            statusTitle.innerText = stepData.title;
+            explanationBox.innerHTML = stepData.text;
+
+            if(stepData.target !== 'network') {
+                document.getElementById(stepData.target).classList.add('active');
+            } else {
+                statusTitle.style.color = "#2980b9";
+            }
+
+            if(currentStep === simulationSteps.length - 1) {
+                nextBtn.innerText = "إنهاء وعرض الرسالة ✔️";
+            } else {
+                nextBtn.innerText = "الخطوة التالية ➡️";
+            }
+        }
+
+        // دالة الانتقال للخطوة التي تليها
+        function nextStep() {
+            currentStep++;
+            if (currentStep < simulationSteps.length) {
+                executeStep();
+            } else {
+                finishSimulation();
+            }
+        }
+
+        // دالة إنهاء المحاكاة
+        function finishSimulation() {
+            clearHighlights();
+            statusTitle.innerText = "🎉 تمت العملية بنجاح!";
+            statusTitle.style.color = "var(--secondary)";
+            explanationBox.innerHTML = "لقد مرت البيانات عبر <b>الطبقات السبع</b> في الجهاز المرسل، ثم عبر <b>الشبكة</b>، ثم صعدت عبر <b>الطبقات السبع</b> في الجهاز المستقبل لتظهر الرسالة بنجاح.";
+            
+            receiverScreen.innerText = `> ${userMessage}`;
+            nextBtn.style.display = "none";
+            sendBtn.disabled = false;
+            messageInput.value = "";
+        }
+    </script>
+</body>
+</html>
